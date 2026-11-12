@@ -8,6 +8,7 @@ use pumpkin_data::translation;
 use pumpkin_data::{Block, BlockDirection, BlockState, BlockStateId};
 use pumpkin_macros::pumpkin_block_from_tag;
 use pumpkin_util::GameMode;
+use pumpkin_util::math::boundingbox::BoundingBox;
 use pumpkin_util::math::position::BlockPos;
 use pumpkin_util::math::vector3::Vector3;
 use pumpkin_world::world::BlockFlags;
@@ -21,6 +22,7 @@ use crate::block::{
     OnPlaceArgs, OnStateReplacedArgs, PathComputationType, PlacedArgs,
 };
 use crate::entity::dismount_helper;
+use crate::entity::passive::villager::VillagerEntity;
 use crate::entity::{Entity, EntityBase, player::Player};
 use crate::world::World;
 use pumpkin_data::HorizontalFacingExt;
@@ -275,7 +277,13 @@ impl BedBlock {
 
         // Make sure the bed is not occupied
         if bed_props.occupied {
-            // TODO: Wake up villager
+            for entity in world.get_entities_at_box(&BoundingBox::from_block(&bed_head_pos)) {
+                if let Some(villager) = entity.cast_any().downcast_ref::<VillagerEntity>()
+                    && villager.is_sleeping()
+                {
+                    villager.wake_up();
+                }
+            }
 
             player.send_system_message_raw(
                 &pumpkin_macros::translate_cross!(
